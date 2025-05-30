@@ -1,0 +1,675 @@
+Register Order App in Spring Cloud
+=======================
+
+OrderApp/src/main/java/com/controller/OrderController.java
+    1 package com.controller;
+    2 
+    3 import org.springframework.web.bind.annotation.GetMapping;
+    4 import org.springframework.web.bind.annotation.RestController;
+    5 
+    6 import com.model.Order;
+    7 
+    8 @RestController
+    9 public class OrderController {
+   10 
+   11 	@GetMapping(value="/getDetails")
+   12 	public Order getOrderDetails() {
+   13 	    Order ord = new Order();
+   14 	    ord.setOrderId("O101");
+   15 	    ord.setProductName("Mobile");
+   16 	    ord.setQuantity(1);
+   17 	    ord.setPrice(35678.0);
+   18 		return ord;
+   19 	}
+   20 	
+   21 }
+   22 
+OrderApp/src/main/java/com/deo/OrderAppApplication.java
+    1 package com.deo;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.context.annotation.ComponentScan;
+    6 
+    7 
+    8 @SpringBootApplication
+    9 @ComponentScan(basePackages= {"com.model,com.controller"})
+   10 public class OrderAppApplication {
+   11 
+   12 	public static void main(String[] args) {
+   13 		SpringApplication.run(OrderAppApplication.class, args);
+   14 	}
+   15 
+   16 }
+   17 
+OrderApp/src/main/java/com/model/Order.java
+    1 package com.model;
+    2 
+    3 public class Order {
+    4 	private String orderId;
+    5     private String productName;
+    6     private int quantity;
+    7     private double price;
+    8 	public String getOrderId() {
+    9 		return orderId;
+   10 	}
+   11 	public void setOrderId(String orderId) {
+   12 		this.orderId = orderId;
+   13 	}
+   14 	public String getProductName() {
+   15 		return productName;
+   16 	}
+   17 	public void setProductName(String productName) {
+   18 		this.productName = productName;
+   19 	}
+   20 	public int getQuantity() {
+   21 		return quantity;
+   22 	}
+   23 	public void setQuantity(int quantity) {
+   24 		this.quantity = quantity;
+   25 	}
+   26 	public double getPrice() {
+   27 		return price;
+   28 	}
+   29 	public void setPrice(double price) {
+   30 		this.price = price;
+   31 	}
+   32 	public Order() {
+   33 		super();
+   34 	}
+   35 
+   36 	
+   37 
+   38 
+   39 }
+   40 
+OrderApp/src/main/resources/application.properties
+    1 server.port=8071
+    2 spring.application.name = ordersapp
+    3 
+    4 eueraka.client.service-url.defaultZone=http://webapps.tekstac.com:8760/eureka/
+    5 eureka.instance.prefer-ip-address=true
+    6 
+Grade
+Reviewed on Thursday, 20 February 2025, 2:11 PM by Automatic grade
+Grade 100 / 100
+
+
+
+===========================================
+
+Access Order App Via Router
+
+=======================
+
+
+
+RouterApp/src/main/java/com/example/demo/RouterAppApplication.java
+    1 package com.example.demo;
+    2 import org.springframework.boot.SpringApplication;
+    3 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    4 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    5 
+    6 @SpringBootApplication
+    7 @EnableDiscoveryClient
+    8 public class RouterAppApplication {
+    9 
+   10 	public static void main(String[] args) {
+   11 		SpringApplication.run(RouterAppApplication.class, args);
+   12 	}
+   13 
+   14 }
+   15 
+RouterApp/src/main/resources/application.properties
+    1 server.port=8777
+    2 spring.application.name=gateway
+    3 
+    4 eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+    5 spring.cloud.gateway.discovery.locator.enabled=true
+    6 spring.cloud.gateway.discovery.locator.lowerCaseServiceId=true
+    7 
+    8 spring.cloud.gateway.routes[0].id=ordersapp
+    9 spring.cloud.gateway.routes[0].uri=lb://ordersapp
+   10 spring.cloud.gateway.routes[0].predicates[0]=Path=/**
+RouterApp/src/main/resources/bootstrap.properties
+    1 spring.application.name=gateway
+    2 
+    3 spring.cloud.gateway.discovery.locator.enabled=true
+    4 spring.cloud.consul.discovery.health-check-path=/actuator/health
+
+
+OrderApp/src/main/java/com/controller/OrderController.java
+    1 package com.controller;
+    2 
+    3 import org.springframework.web.bind.annotation.GetMapping;
+    4 import org.springframework.web.bind.annotation.RestController;
+    5 
+    6 
+    7 @RestController
+    8 public class OrderController {
+    9 
+   10 	@GetMapping(value="/getInfo")
+   11 	public String getDetails() {
+   12 	    return "This is order application";
+   13 	}
+   14 	
+   15 }
+   16 
+OrderApp/src/main/java/com/deo/OrderAppApplication.java
+    1 package com.deo;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.context.annotation.ComponentScan;
+    6 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    7 
+    8 @SpringBootApplication
+    9 @EnableDiscoveryClient
+   10 @ComponentScan(basePackages= {"com.deo,com.controller"})
+   11 public class OrderAppApplication {
+   12 
+   13 	public static void main(String[] args) {
+   14 		SpringApplication.run(OrderAppApplication.class, args);
+   15 	}
+   16 
+   17 }
+   18 
+OrderApp/src/main/resources/application.properties
+    1 server.port=8071
+    2 spring.application.name = ordersapp
+    3 eureka.client.serviceUrl.defaultZone = http://localhost:8761/eureka
+    4 eureka.client.instance.preferIpAddress = true
+Grade
+Reviewed on Monday, 27 January 2025, 2:20 PM by Automatic grade
+Grade 100 / 100
+
+----------------------------------------------------------------------------------
+E-Commerce Platform
+=================
+
+
+Registry/src/main/java/com/example/RegistryApplication.java
+     package com.example;
+     
+     import org.springframework.boot.SpringApplication;
+     import org.springframework.boot.autoconfigure.SpringBootApplication;
+     import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+     
+     @EnableEurekaServer
+     @SpringBootApplication
+     public class RegistryApplication {
+    
+    	public static void main(String[] args) {
+    		SpringApplication.run(RegistryApplication.class, args);
+    	}
+    
+    }
+    
+Registry/src/main/resources/application.properties
+     eureka.client.registerWithEureka = false
+     eureka.client.fetchRegistry = false
+     server.port = 8761
+
+
+
+
+Gateway/src/main/java/com/example/demo/GatewayApplication.java
+     package com.example.demo;
+     
+     import org.springframework.boot.SpringApplication;
+     import org.springframework.boot.autoconfigure.SpringBootApplication;
+     import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+     
+     @EnableDiscoveryClient
+     @SpringBootApplication
+     public class GatewayApplication {
+    
+    	public static void main(String[] args) {
+    		SpringApplication.run(GatewayApplication.class, args);
+    	}
+    
+    }
+    
+Gateway/src/main/resources/application.properties
+     server.port=8777
+     spring.application.name=gateway
+     eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+     spring.cloud.gateway.discovery.locator.enabled=true
+     
+     spring.cloud.gateway.routes[0].id=ordersapp
+     spring.cloud.gateway.routes[0].uri=lb://ordersapp
+     spring.cloud.gateway.routes[0].predicates[0]=Path=/ordersapp/**
+     spring.cloud.gateway.routes[0].filters[0]=StripPrefix=1
+Gateway/src/main/resources/bootstrap.properties
+     spring.application.name=gateway
+     spring.cloud.gateway.discovery.locator.enabled=true
+     spring.cloud.consul.discovery.health-check-path=/actuator/health
+
+
+
+
+
+OrderService/src/main/java/com/ecp/controller/OrderController.java
+     package com.ecp.controller;
+     
+     import java.util.List;
+     
+     import org.springframework.beans.factory.annotation.Autowired;
+     import org.springframework.web.bind.annotation.GetMapping;
+     import org.springframework.web.bind.annotation.PostMapping;
+     import org.springframework.web.bind.annotation.RequestBody;
+     import org.springframework.web.bind.annotation.RestController;
+    
+    import com.ecp.model.Order;
+    import com.ecp.service.OrderService;
+    
+    @RestController
+    public class OrderController {
+    
+    	@Autowired
+    	private OrderService service;
+    	
+    	@PostMapping(value = "/ECP/add",produces = "application/json")
+    	public boolean add(@RequestBody Order order)
+    	{
+    		return service.add(order);
+    	}
+    	@GetMapping(value = "/ECP/viewAll",produces = "application/json")
+    	public List<Order> viewAll()
+    	{
+    		return service.viewAll();
+    	}
+    	
+    }
+    	 	  	    	    		        	 	
+    
+OrderService/src/main/java/com/ecp/main/OrderServiceApplication.java
+     package com.ecp.main;
+     
+     import org.springframework.boot.SpringApplication;
+     import org.springframework.boot.autoconfigure.SpringBootApplication;
+     import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+     import org.springframework.context.annotation.ComponentScan;
+     
+     @EnableDiscoveryClient
+     @SpringBootApplication
+    @ComponentScan({"com.ecp.controller,com.ecp.main,com.ecp.model,com.ecp.service"})
+    public class OrderServiceApplication {
+    
+    	public static void main(String[] args) {
+    		SpringApplication.run(OrderServiceApplication.class, args);
+    	}
+    
+    }
+    
+OrderService/src/main/java/com/ecp/model/Order.java
+     package com.ecp.model;
+     
+     import org.springframework.stereotype.Component;
+     
+     @Component
+     public class Order {
+     	private String orderId;
+         private String productName;
+         private int quantity;
+        private double price;
+    	public Order(String orderId, String productName, int quantity, double price) {
+    		super();
+    		this.orderId = orderId;
+    		this.productName = productName;
+    		this.quantity = quantity;
+    		this.price = price;
+    	}
+    	public Order() {
+    		super();
+    	}
+    
+    }
+    
+OrderService/src/main/java/com/ecp/service/OrderService.java
+     package com.ecp.service;
+     
+     import org.springframework.stereotype.Service;
+     import java.util.ArrayList;
+     import java.util.List;
+     
+     import com.ecp.model.Order;
+     @Service
+     public class OrderService {
+    
+    	private ArrayList<Order> orderList=new ArrayList<Order>();
+    
+    	public ArrayList<Order> getOrderList() {
+    		return orderList;
+    	}
+    
+    	public void setOrderList(ArrayList<Order> orderList) {
+    		this.orderList = orderList;
+    	}
+    
+    	public OrderService() {
+    		Order obj1=new Order("O101","Cloth",10,150.00);
+    		Order obj2=new Order("O102","Cosmetics",2,1500.00);
+    		Order obj3=new Order("O103","Toys",1,2000.00);
+    		Order obj4=new Order("O104","Grocery",4,1150.00);
+    		Order obj5=new Order("O105","Books",5,350.00);
+    		Order obj6=new Order("O106","Phone",10,33150.00);
+    		Order obj7=new Order("O107","Camera",10,4550.00);
+    		
+    		orderList.add(obj1);
+    		orderList.add(obj2);
+    		orderList.add(obj3);
+    		orderList.add(obj4);
+    		orderList.add(obj5);
+    		orderList.add(obj6);
+    		orderList.add(obj7);
+    	}	 	  	    	    		        	 	
+    	
+    	public boolean add(Order orderObj)
+    	{
+            return orderList.add(orderObj);	
+    	    
+    	}
+    	public List<Order> viewAll()
+    	{
+    		return orderList;
+    	}
+    }
+    
+OrderService/src/main/resources/application.properties
+     server.port = 7071
+     eureka.client.serviceUrl.defaultZone  = http://localhost:8761/eureka
+     eureka.client.instance.preferIpAddress = true
+     spring.application.name = ordersapp
+
+
+
+UserService/src/main/java/com/ecp/controller/UserController.java
+     package com.ecp.controller;
+     
+     import java.util.List;
+     
+     import org.springframework.beans.factory.annotation.Autowired;
+     import org.springframework.web.bind.annotation.GetMapping;
+     import org.springframework.web.bind.annotation.PostMapping;
+     import org.springframework.web.bind.annotation.RequestBody;
+     import org.springframework.web.bind.annotation.RestController;
+    
+    
+    import com.ecp.model.User;
+    import com.ecp.service.UserService;
+    
+    @RestController
+    public class UserController {
+    	
+    	@Autowired
+    	private UserService service;
+    	
+    	@PostMapping(value = "/ECP/add",produces = "application/json")
+    	public boolean add(@RequestBody User user)
+    	{
+    		return service.add(user);
+    	}
+    	@GetMapping(value = "/ECP/viewAll",produces = "application/json")
+    	public List<User> viewAll()
+    	{
+    		return service.viewAll();
+    	}
+    }
+    	 	  	    	    		        	 	
+    
+UserService/src/main/java/com/ecp/main/UserServiceApplication.java
+     package com.ecp.main;
+     
+     import org.springframework.boot.SpringApplication;
+     import org.springframework.boot.autoconfigure.SpringBootApplication;
+     import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+     import org.springframework.context.annotation.ComponentScan;
+     
+     @EnableDiscoveryClient
+     @SpringBootApplication
+    @ComponentScan({"com.ecp.controller,com.ecp.main,com.ecp.model,com.ecp.service"})
+    public class UserServiceApplication {
+    
+    	public static void main(String[] args) {
+    		SpringApplication.run(UserServiceApplication.class, args);
+    	}
+    
+    }
+    
+UserService/src/main/java/com/ecp/model/User.java
+     package com.ecp.model;
+     
+     import org.springframework.stereotype.Component;
+     
+     @Component
+     public class User {
+     	private String UserId;
+         private String firstName;
+         private String lastName;
+        private String emailId;
+    	public User(String userId, String firstName, String lastName, String emailId) {
+    		super();
+    		UserId = userId;
+    		this.firstName = firstName;
+    		this.lastName = lastName;
+    		this.emailId = emailId;
+    	}
+    	public User() {
+    		super();
+    	}
+        
+    }
+    
+UserService/src/main/java/com/ecp/service/UserService.java
+     package com.ecp.service;
+     
+     import java.util.ArrayList;
+     import java.util.List;
+     
+     import com.ecp.model.User;
+     import org.springframework.stereotype.Service;
+     
+     
+    @Service
+    public class UserService {
+    	
+    	private ArrayList<User> userList=new ArrayList<User>();
+    
+    	public ArrayList<User> getUserList() {
+    		return userList;
+    	}
+    
+    	public void setUserList(ArrayList<User> userList) {
+    		this.userList = userList;
+    	}
+    
+    	public UserService() {
+    		User obj1=new User("U201","sathya","haridhas","sathya@gmail.com");
+    		User obj2=new User("U202","rose","john","rose@gmail.com");
+    		User obj3=new User("U203","laya","vishal","laya@gmail.com");
+    		User obj4=new User("U204","adit","jagan","adit@gmail.com");
+    		User obj5=new User("U205","harshi","dhana","harshi@gmail.com");
+    		User obj6=new User("U206","jack","rose","jack@gmail.com");
+    		User obj7=new User("U207","priya","vish","priya@gmail.com");
+    		
+    		userList.add(obj1);
+    		userList.add(obj2);
+    		userList.add(obj3);
+    		userList.add(obj4);
+    		userList.add(obj5);
+    		userList.add(obj6);
+    		userList.add(obj7);
+    	}	 	  	    	    		        	 	
+    	
+    	public boolean add(User userObj)
+    	{
+            return userList.add(userObj);	
+    	    
+    	}
+    	public List<User> viewAll()
+    	{
+    		return userList;
+    	}
+    }
+    
+UserService/src/main/resources/application.properties
+     server.port = 7072
+     eureka.client.serviceUrl.defaultZone  = http://localhost:8761/eureka
+     eureka.client.instance.preferIpAddress = true
+     spring.application.name = userapp
+     
+
+
+--------------------------------------------------------------------------------------------
+
+Inter- Microservice Communication UserApp and ProductApp
+
+
+
+
+UserApp/src/main/java/com/example/demo/UserAppApplication.java
+     package com.example.demo;
+     
+     import org.springframework.boot.SpringApplication;
+     import org.springframework.boot.autoconfigure.SpringBootApplication;
+     import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+     import org.springframework.cloud.openfeign.EnableFeignClients;
+     import org.springframework.context.annotation.ComponentScan;
+     
+     @SpringBootApplication
+    @EnableDiscoveryClient
+    @EnableFeignClients(basePackages= {"com.user.controller","com.user.proxy"})
+    @ComponentScan(basePackages= {"com.user.*"})
+    public class UserAppApplication {
+    
+    	public static void main(String[] args) {
+    		SpringApplication.run(UserAppApplication.class, args);
+    	}
+    
+    }
+    
+UserApp/src/main/java/com/user/controller/ApplicationController.java
+     package com.user.controller;
+     
+     
+     import org.springframework.beans.factory.annotation.Autowired;
+     import org.springframework.web.bind.annotation.GetMapping;
+     import org.springframework.web.bind.annotation.RestController;
+     
+     import com.user.proxy.ServiceProxy;
+     @RestController
+    public class ApplicationController {
+    
+    	@Autowired
+    	private ServiceProxy proxy;
+    	
+    	@GetMapping(value="/accessApp")
+    	public String retreiveInfo( ) {
+    		
+    		return proxy.getDetails();
+    		
+    	}
+    	
+    	
+    	
+    }
+UserApp/src/main/java/com/user/proxy/ServiceProxy.java
+     package com.user.proxy;
+     
+     import org.springframework.cloud.openfeign.FeignClient;
+     import org.springframework.web.bind.annotation.GetMapping;
+       
+     @FeignClient(name="ProductApp",url="http://webapps.tekstac.com:8091/")
+     public interface ServiceProxy {
+     	
+     
+    	   @GetMapping(value="/getInfo")
+    		public String getDetails(); 
+    	   
+    
+    }
+    	 	  	    	    		        	 	
+    
+UserApp/src/main/resources/application.properties
+     server.port=8090
+
+
+
+
+================================================
+
+Service Fallback
+
+
+
+
+UserApp/src/main/java/com/example/demo/UserAppApplication.java
+     package com.example.demo;
+     
+     import org.springframework.boot.SpringApplication;
+     import org.springframework.boot.autoconfigure.SpringBootApplication;
+     import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+     import org.springframework.cloud.openfeign.EnableFeignClients;
+     import org.springframework.context.annotation.ComponentScan;
+     
+     @SpringBootApplication
+    @EnableDiscoveryClient
+    @EnableFeignClients(basePackages= {"com.user.controller","com.user.proxy"})
+    @ComponentScan(basePackages= {"com.user.*"})
+    public class UserAppApplication {
+    
+    	public static void main(String[] args) {
+    		SpringApplication.run(UserAppApplication.class, args);
+    	}
+    
+    }
+    
+UserApp/src/main/java/com/user/controller/ApplicationController.java
+     package com.user.controller;
+     
+     import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+     import org.springframework.beans.factory.annotation.Autowired;
+     import org.springframework.web.bind.annotation.GetMapping;
+     import org.springframework.web.bind.annotation.RestController;
+     
+     import com.user.proxy.ServiceProxy;
+     @RestController
+    public class ApplicationController {
+    
+    	@Autowired
+    	private ServiceProxy proxy;
+    	
+    	@GetMapping(value="/accessApp")
+    	@CircuitBreaker(name="myCircuitBreaker",fallbackMethod="fallback")
+    	public String retreiveInfo( ) {
+    		return proxy.getDetails();
+    	}
+    	
+    	public String fallback(Exception e) {
+    		return "Sorry Service is unavailable";
+    	}
+    	
+    	
+    }	 	  	    	    		        	 	
+    
+UserApp/src/main/java/com/user/proxy/ServiceProxy.java
+     package com.user.proxy;
+     
+     import org.springframework.cloud.openfeign.FeignClient;
+     import org.springframework.web.bind.annotation.GetMapping;
+       
+     @FeignClient(name="ProductApp",url="http://webapps.tekstac.com:8099/")
+     public interface ServiceProxy {
+     	
+     
+    	   @GetMapping(value="/getInfo")
+    		public String getDetails(); 
+    
+    
+    }
+    	 	  	    	    		        	 	
+    
+UserApp/src/main/resources/application.properties
+     server.port=8090
+
