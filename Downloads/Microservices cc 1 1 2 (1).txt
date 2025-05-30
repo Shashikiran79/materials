@@ -1,0 +1,1832 @@
+
+Plant Nursery App - Version Update
+==========================
+Registry/src/main/java/com/example/RegistryApplication.java
+    1 package com.example;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+    6 
+    7 @EnableEurekaServer
+    8 @SpringBootApplication
+    9 public class RegistryApplication {
+   10 
+   11 	public static void main(String[] args) {
+   12 		SpringApplication.run(RegistryApplication.class, args);
+   13 	}
+   14 
+   15 }
+   16 
+Registry/src/main/resources/application.properties
+    1 eureka.client.registerWithEureka = false
+    2 eureka.client.fetchRegistry = false
+    3 server.port = 8761
+
+
+PlantNurseryApp/src/main/java/com/plantnursery/app/PlantNurseryAppApplication.java
+    1 package com.plantnursery.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.context.annotation.ComponentScan;
+    6 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    7 
+    8 
+    9 @EnableDiscoveryClient
+   10 @SpringBootApplication
+   11 @ComponentScan(basePackages= {"com.plantnursery.model","com.plantnursery.controller","com.plantnursery.service","com.plantnursery.exception","com.plantnursery.validation"})
+   12 public class PlantNurseryAppApplication {
+   13 
+   14 	public static void main(String[] args) {
+   15 		SpringApplication.run(PlantNurseryAppApplication.class, args);
+   16 	}
+   17 
+   18 }
+   19 
+PlantNurseryApp/src/main/java/com/plantnursery/controller/PlantController.java
+    1 package com.plantnursery.controller;
+    2 
+    3 import java.util.List;
+    4 
+    5 import org.springframework.beans.factory.annotation.Autowired;
+    6 import org.springframework.validation.annotation.Validated;
+    7 import org.springframework.web.bind.annotation.GetMapping;
+    8 import org.springframework.web.bind.annotation.PathVariable;
+    9 import org.springframework.web.bind.annotation.PostMapping;
+   10 import org.springframework.web.bind.annotation.PutMapping;
+   11 import org.springframework.web.bind.annotation.RequestBody;
+   12 import org.springframework.web.bind.annotation.RestController;
+   13 
+   14 import com.plantnursery.exception.InvalidPlantException;
+   15 import com.plantnursery.model.Plant;
+   16 import com.plantnursery.service.IPlantService;
+   17 
+   18 @RestController
+   19 public class PlantController {
+   20 	
+   21 	@Autowired
+   22 	private IPlantService service;
+   23 	
+   24 	@PostMapping(value = "/addPlant",produces = "application/json")
+   25 	public Plant addPlant(@RequestBody @Validated Plant plantObj) throws InvalidPlantException
+   26 	{
+   27 		return service.addPlant(plantObj);
+   28 	}
+   29 	@PutMapping(value = "/updateQuantity/{plantId}/{quantity}",produces = "application/json")
+   30 	public Plant updatePlantQuantity(@PathVariable String plantId,@PathVariable int quantity) throws InvalidPlantException
+   31 	{
+   32 		return service.updatePlantQuantity(plantId,quantity);
+   33 	}
+   34 	
+   35 	@GetMapping(value = "/viewPlantsByType/{plantType}",produces = "application/json")
+   36 	public List<Plant> viewPlantsByType(@PathVariable String plantType)
+   37 	{	 	  	    	    		        	 	
+   38 		return service.viewPlantsByType(plantType);
+   39 	}
+   40 	
+   41 	@GetMapping(value = "/viewPlantsInAPriceRange/{lowlimit}/{upperlimit}",produces = "application/json")
+   42 	public List<Plant> viewPlantsInAPriceRange(@PathVariable double lowlimit,@PathVariable double upperlimit)
+   43 	{
+   44 		return service.viewPlantsInAPriceRange(lowlimit,upperlimit);
+   45 	}
+   46 }
+   47 
+PlantNurseryApp/src/main/java/com/plantnursery/exception/CustomizedResponseEntityExceptionHandler.java
+    1 
+    2 
+    3 package com.plantnursery.exception;
+    4 
+    5 import java.time.LocalDate;
+    6 
+    7 import org.springframework.http.HttpHeaders;
+    8 import org.springframework.http.HttpStatus;
+    9 import org.springframework.http.HttpStatusCode;
+   10 import org.springframework.http.ResponseEntity;
+   11 import org.springframework.validation.ObjectError;
+   12 import org.springframework.web.bind.MethodArgumentNotValidException;
+   13 import org.springframework.web.bind.annotation.ControllerAdvice;
+   14 import org.springframework.web.bind.annotation.ExceptionHandler;
+   15 import org.springframework.web.bind.annotation.RestController;
+   16 import org.springframework.web.context.request.WebRequest;
+   17 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+   18 
+   19 import lombok.extern.slf4j.Slf4j;
+   20 
+   21 @ControllerAdvice
+   22 @RestController
+   23 @Slf4j
+   24 public class CustomizedResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
+   25 
+   26 
+   27 	@ExceptionHandler(Exception.class)
+   28 	public final ResponseEntity<Object> handleAllExceptions(Exception ex, WebRequest request) {
+   29 
+   30 		ExceptionResponse exceptionResponse = new ExceptionResponse(LocalDate.now(), ex.getMessage(),
+   31 				request.getDescription(false),HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
+   32 		log.error(ex.getMessage());
+   33 		return new ResponseEntity(exceptionResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+   34 	}
+   35 
+   36 	@ExceptionHandler(InvalidPlantException.class)
+   37 	public final ResponseEntity<ExceptionResponse> handleNotFoundException(InvalidPlantException ex, WebRequest request) {	 	  	    	    		        	 	
+   38 		ExceptionResponse exceptionResponse = new ExceptionResponse(LocalDate.now(), ex.getMessage(),
+   39 				request.getDescription(false),HttpStatus.NOT_FOUND.getReasonPhrase());
+   40 		log.error(ex.getMessage());
+   41 		return new ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.NOT_FOUND);
+   42 	}	
+   43 	
+   44 	
+   45 
+   46 //	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+   47 	@Override
+   48 protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+   49 
+   50 	HttpHeaders headers, HttpStatusCode status, WebRequest request) {	
+   51 	String details = "";
+   52 		for(ObjectError error : ex.getBindingResult().getAllErrors()) {
+   53 			details+=error.getDefaultMessage()+", ";
+   54 		}
+   55 		//sysout
+   56 		ExceptionResponse exceptionResponse = new ExceptionResponse(LocalDate.now(),details,
+   57 				request.getDescription(false),HttpStatus.BAD_REQUEST.getReasonPhrase());
+   58 
+   59 		log.error("validation :"+details);
+   60 
+   61 		return new ResponseEntity(exceptionResponse , HttpStatus.BAD_REQUEST);
+   62 	}
+   63 
+   64 
+   65 
+   66 }
+   67 
+   68 
+   69 	 	  	    	    		        	 	
+   70 
+PlantNurseryApp/src/main/java/com/plantnursery/exception/ExceptionResponse.java
+    1 package com.plantnursery.exception;
+    2 
+    3 import java.time.LocalDate;
+    4 
+    5 public class ExceptionResponse {
+    6 	  private LocalDate timestamp;
+    7 	  private String message;
+    8 	  private String details;
+    9 	  private String httpCodeMessage;
+   10 	public LocalDate getTimestamp() {
+   11 		return timestamp;
+   12 	}
+   13 	public void setTimestamp(LocalDate timestamp) {
+   14 		this.timestamp = timestamp;
+   15 	}
+   16 	public String getMessage() {
+   17 		return message;
+   18 	}
+   19 	public void setMessage(String message) {
+   20 		this.message = message;
+   21 	}
+   22 	public String getDetails() {
+   23 		return details;
+   24 	}
+   25 	public void setDetails(String details) {
+   26 		this.details = details;
+   27 	}
+   28 	public String getHttpCodeMessage() {
+   29 		return httpCodeMessage;
+   30 	}
+   31 	public void setHttpCodeMessage(String httpCodeMessage) {
+   32 		this.httpCodeMessage = httpCodeMessage;
+   33 	}
+   34 	public ExceptionResponse(LocalDate timestamp, String message, String details, String httpCodeMessage) {
+   35 		super();
+   36 		this.timestamp = timestamp;
+   37 		this.message = message;
+   38 		this.details = details;
+   39 		this.httpCodeMessage = httpCodeMessage;
+   40 	}	 	  	    	    	     	      	 	
+   41 	public ExceptionResponse() {
+   42 		
+   43 	}
+   44 	  
+   45 
+   46 }
+   47 
+   48 
+   49 
+PlantNurseryApp/src/main/java/com/plantnursery/exception/InvalidPlantException.java
+    1 package com.plantnursery.exception;
+    2 
+    3 
+    4 import org.springframework.web.bind.annotation.ResponseStatus;
+    5 import org.springframework.http.HttpStatus;
+    6 
+    7 @ResponseStatus(HttpStatus.NOT_FOUND)
+    8 public class InvalidPlantException extends Exception {
+    9 	
+   10 	
+   11 	public InvalidPlantException(String message) {
+   12 		super(message);
+   13 		System.out.println("Hi");
+   14 	}
+   15 
+   16 
+   17 
+   18 }
+   19 
+PlantNurseryApp/src/main/java/com/plantnursery/model/Plant.java
+    1 package com.plantnursery.model;
+    2 
+    3 
+    4 
+    5 import jakarta.validation.constraints.Min;
+    6 import jakarta.validation.constraints.NotEmpty;
+    7 import lombok.AllArgsConstructor;
+    8 import lombok.Data;
+    9 import lombok.NoArgsConstructor;
+   10 
+   11 
+   12 @Data
+   13 @AllArgsConstructor
+   14 @NoArgsConstructor
+   15 public class Plant {
+   16 	
+   17 	@NotEmpty(message="Provide value for Plant Id")
+   18 	private String plantId;
+   19 	@NotEmpty(message="Provide value for Plant name")
+   20 	private String plantName;
+   21 	@Min(value=1,message="Provide value greater than zero")
+   22 	private int quantity;
+   23 	@NotEmpty(message="Provide value for Plant type")
+   24 	private String plantType;
+   25 	private double price;
+   26 
+   27 
+   28 }
+   29 	 	  	    	    		        	 	
+   30 
+PlantNurseryApp/src/main/java/com/plantnursery/service/IPlantService.java
+    1 package com.plantnursery.service;
+    2 
+    3 import java.util.List;
+    4 
+    5 import com.plantnursery.exception.InvalidPlantException;
+    6 import com.plantnursery.model.Plant;
+    7 
+    8 public interface IPlantService {
+    9 	
+   10 	public Plant addPlant(Plant plantObj)throws InvalidPlantException;
+   11 	public Plant updatePlantQuantity(String plantId, int quantity) throws InvalidPlantException;
+   12 	public List<Plant> viewPlantsByType(String plantType);
+   13 	public List<Plant> viewPlantsInAPriceRange(double lowlimit, double upperlimit);
+   14 }
+   15 
+PlantNurseryApp/src/main/java/com/plantnursery/service/PlantServiceImpl.java
+    1 package com.plantnursery.service;
+    2 
+    3 import org.springframework.stereotype.Service;
+    4 
+    5 import com.plantnursery.exception.InvalidPlantException;
+    6 import com.plantnursery.model.Plant;
+    7 import java.util.ArrayList;
+    8 import java.util.List;
+    9 
+   10 import lombok.extern.java.Log;
+   11 import lombok.extern.slf4j.Slf4j;
+   12 
+   13 
+   14 @Service
+   15 @Slf4j
+   16 public class PlantServiceImpl implements IPlantService {
+   17 	
+   18 private static List<Plant> plantList=new ArrayList<Plant>();
+   19 
+   20 	public static List<Plant> getPlantList() {
+   21 		return plantList;
+   22 	}
+   23 
+   24 	public static void setPlantList(List<Plant> plantList) {
+   25 		PlantServiceImpl.plantList = plantList;
+   26 		
+   27 	}
+   28 	public Plant getPlant(Plant b1) {
+   29 		
+   30 		for(Plant b:plantList) {
+   31 		
+   32 		if(b.getPlantId().equals(b1.getPlantId())) {
+   33 			return b;
+   34 		}
+   35 	}
+   36 		return null;
+   37 }	 	  	    	    		        	 	
+   38 	
+   39 	public PlantServiceImpl()
+   40 	{
+   41 
+   42 	}
+   43 	public Plant addPlant(Plant plantObj)throws InvalidPlantException
+   44 	{
+   45 		if(getPlant(plantObj)==null) {
+   46 			plantList.add(plantObj);
+   47 			log.info("Plant with Plant Id"+plantObj.getPlantId()+" added successfully");
+   48 			}
+   49 			else {
+   50 					log.error("Plant with "+plantObj.getPlantId()+" already exists!");
+   51 					throw new InvalidPlantException("Plant with "+plantObj.getPlantId()+" already exists!");
+   52 			}
+   53 				
+   54 			return plantObj;
+   55 		
+   56 	}
+   57 	public Plant updatePlantQuantity(String plantId, int quantity) throws InvalidPlantException
+   58 	{
+   59 		boolean flag=false;
+   60 		Plant b1=null;
+   61 		for(Plant b:plantList) {
+   62 			
+   63 			if(b.getPlantId().equals(plantId)) {
+   64 				b1=b;
+   65 				b.setQuantity(quantity);
+   66 				flag=true;
+   67 				break;
+   68 			}
+   69 		}
+   70 		if(flag) {
+   71 			log.info("Plant "+plantId+" quantity updated successfully to "+ quantity);
+   72 			return b1;
+   73 		}	 	  	    	    		        	 	
+   74 		else {
+   75 			log.error("Invalid Plant Id");
+   76 			throw new InvalidPlantException("Invalid Plant Id");
+   77 		}
+   78 	}
+   79 	
+   80 	public List<Plant> viewPlantsByType(String plantType)
+   81 	{
+   82 		List<Plant> pList=new ArrayList<Plant>();	      
+   83         for(Plant s:plantList) {
+   84         	if(s.getPlantType().equalsIgnoreCase(plantType)) {
+   85         		pList.add(s);
+   86         	}
+   87         }
+   88 	return pList;
+   89 	}
+   90 	public List<Plant> viewPlantsInAPriceRange(double lowlimit, double upperlimit)
+   91 	{
+   92 		List<Plant> plantsInRange = new ArrayList<>();
+   93 
+   94         for (Plant plant : plantList) {
+   95             if (plant.getPrice() >= lowlimit && plant.getPrice() <= upperlimit) {
+   96                 plantsInRange.add(plant);
+   97             }
+   98         }
+   99 
+  100         return plantsInRange;
+  101     }
+  102 }
+  103 	 	  	    	    		        	 	
+  104 
+PlantNurseryApp/src/main/resources/application.properties
+    1 server.port=9090
+    2 logging.config=src/main/resources/logger.xml
+    3 eureka.client.serviceUrl.defaultZone  = http://localhost:8761/eureka
+    4 eureka.client.instance.preferIpAddress = true
+    5 spring.application.name = plantnurseryapp
+    6 
+PlantNurseryApp/src/main/resources/logger.xml
+    1 <?xml version="1.0" encoding="UTF-8"?>
+    2 <configuration>
+    3     <property name="HOME_LOG" value="log/mylogs.log"/>
+    4 
+    5     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    6         <layout class="ch.qos.logback.classic.PatternLayout">
+    7             <Pattern>
+    8                 %d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n
+    9             </Pattern>
+   10         </layout>
+   11     </appender>
+   12 
+   13     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+   14         <file>${HOME_LOG}</file>
+   15         
+   16         <append>true</append>
+   17         <encoder>
+   18             <pattern>[%-5level] %d{dd-MM-yyyy hh:mm:ss.SSS a} [%thread]  %logger{50} - %msg%n</pattern>
+   19         </encoder>
+   20     </appender>
+   21 
+   22 
+   23 <!-- additivity as false appends only to file and not to console -->
+   24     <logger name="com.plantnursery.service" level="info" additivity="false">
+   25         <!-- <appender-ref ref="CONSOLE"/> -->
+   26         <appender-ref ref="FILE"/>
+   27     </logger>
+   28 
+   29 	<logger name="com.plantnursery.exception" level="info" additivity="false">
+   30         <!-- <appender-ref ref="CONSOLE"/> -->
+   31         <appender-ref ref="FILE"/>
+   32     </logger>
+   33 	
+   34     <root level="debug">
+   35         <appender-ref ref="CONSOLE"/>
+   36     </root>
+   37 </configuration>
+   38 	 	  	    	    	     	      	 	
+
+
+Gateway/src/main/java/com/example/demo/GatewayApplication.java
+    1 package com.example.demo;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    6 
+    7 @EnableDiscoveryClient
+    8 @SpringBootApplication
+    9 public class GatewayApplication {
+   10 
+   11 	public static void main(String[] args) {
+   12 		SpringApplication.run(GatewayApplication.class, args);
+   13 	}
+   14 
+   15 }
+   16 
+Gateway/src/main/resources/application.properties
+    1 server.port=8777
+    2 spring.application.name=gateway
+    3 #management.endpoints.web.exposure.include=*
+    4 eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+    5 spring.cloud.gateway.discovery.locator.enabled=true
+    6 spring.cloud.gateway.discovery.locator.lowerCaseServiceId=true
+    7 #spring.cloud.gateway.routes.predicates.Path=/**
+    8 spring.cloud.gateway.globalcors.cors.corsConfigurations=[/**]
+    9 spring.cloud.gateway.globalcors.cors.corsConfigurations.allowedOrigins=*
+   10 spring.cloud.gateway.globalcors.cors.corsConfigurations.allowedMethods=*
+   11 
+   12 
+   13 
+   14 spring.cloud.gateway.routes[0].id=plantnurseryapp
+   15 spring.cloud.gateway.routes[0].uri=lb://plantnurseryapp
+   16 spring.cloud.gateway.routes[0].predicates[0]=Path=/**
+Gateway/src/main/resources/bootstrap.properties
+    1 spring.application.name=gateway
+    2 spring.cloud.gateway.discovery.locator.enabled=true
+    3 spring.cloud.consul.discovery.health-check-path=/actuator/health
+
+
+PlantNurseryApplication/src/main/java/com/plantnursery/app/PlantNurseryApplication.java
+    1 package com.plantnursery.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    6 import org.springframework.cloud.openfeign.EnableFeignClients;
+    7 import org.springframework.context.annotation.ComponentScan;
+    8 
+    9 @SpringBootApplication
+   10 @EnableDiscoveryClient
+   11 @EnableFeignClients(basePackages= {"com.plantnursery.controller","com.plantnursery.proxy"})
+   12 @ComponentScan(basePackages= {"com.plantnursery.*"})
+   13 public class PlantNurseryApplication {
+   14 
+   15 	public static void main(String[] args) {
+   16 		SpringApplication.run(PlantNurseryApplication.class, args);
+   17 	}
+   18 
+   19 }
+   20 
+PlantNurseryApplication/src/main/java/com/plantnursery/controller/ApplicationController.java
+    1 package com.plantnursery.controller;
+    2 
+    3 import org.springframework.beans.factory.annotation.Autowired;
+    4 import org.springframework.web.bind.annotation.GetMapping;
+    5 import org.springframework.web.bind.annotation.RestController;
+    6 
+    7 //import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+    8 import com.plantnursery.proxy.ServiceProxy;
+    9 
+   10 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+   11 @RestController
+   12 public class ApplicationController {
+   13 
+   14 	@Autowired
+   15 	private ServiceProxy proxy;
+   16 	
+   17 	@GetMapping(value="/greet")
+   18 	@CircuitBreaker(name="myCircuitBreaker",fallbackMethod="fallback")
+   19 	
+   20 	public String retreiveInfo( ) {
+   21 		return proxy.greeting();
+   22 		
+   23 	}
+   24 	
+   25 	public String fallback(Exception e) {
+   26 		return "Sorry Service is unavailable";
+   27 	}
+   28 	
+   29 }
+   30 	 	  	    	    		        	 	
+   31 
+PlantNurseryApplication/src/main/java/com/plantnursery/proxy/ServiceProxy.java
+    1 package com.plantnursery.proxy;
+    2 
+    3 
+    4 import org.springframework.cloud.openfeign.FeignClient;
+    5 import org.springframework.web.bind.annotation.RequestMapping;
+    6   
+    7 @FeignClient(name="PlantNurseryGreeting" )
+    8 public interface ServiceProxy {
+    9 	
+   10 	   @RequestMapping("/welcome")
+   11 	   public String greeting();
+   12 
+   13 
+   14 }
+   15 
+PlantNurseryApplication/src/main/resources/application.properties
+    1 server.port=8090
+    2 
+
+PlantNurseryGreeting/src/main/java/com/plantnursery/app/PlantNurseryGreetingApplication.java
+    1 package com.plantnursery.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.context.annotation.ComponentScan;
+    6 
+    7 @SpringBootApplication
+    8 @ComponentScan(basePackages= {"com.plantnursery.controller"})
+    9 public class PlantNurseryGreetingApplication {
+   10 
+   11 	public static void main(String[] args) {
+   12 		SpringApplication.run(PlantNurseryGreetingApplication.class, args);
+   13 	}
+   14 
+   15 }
+   16 
+PlantNurseryGreeting/src/main/java/com/plantnursery/controller/GreetingController.java
+    1 package com.plantnursery.controller;
+    2 
+    3 import org.springframework.web.bind.annotation.GetMapping;
+    4 import org.springframework.web.bind.annotation.ResponseBody;
+    5 import org.springframework.web.bind.annotation.RestController;
+    6 
+    7 @RestController
+    8 public class GreetingController {
+    9 
+   10 	
+   11 	@GetMapping(value="/welcome")
+   12 	public @ResponseBody String greeting( ) {
+   13 		
+   14 		return "Welcome to Nature Love Plant Nursery!!!!!";
+   15 		
+   16 	}
+   17 }
+   18 
+PlantNurseryGreeting/src/main/resources/application.properties
+    1 server.port=8091
+    2 spring.application.name = PlantNurseryGreeting
+    3 
+    4 
+Grade
+Reviewed on Tuesday, 7 January 2025, 5:46 PM by Automatic grade
+Grade 100 / 100
+
+=================================================
+
+
+EmployMe - Boot with MicroServices - Version Update
+=====================================
+Gateway/src/main/java/com/example/demo/GatewayApplication.java
+    1 package com.example.demo;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    6 
+    7 @EnableDiscoveryClient
+    8 @SpringBootApplication
+    9 public class GatewayApplication {
+   10 
+   11 	public static void main(String[] args) {
+   12 		SpringApplication.run(GatewayApplication.class, args);
+   13 	}
+   14 
+   15 }
+   16 
+Gateway/src/main/resources/application.properties
+    1 server.port=8777
+    2 spring.application.name=gateway
+    3 #management.endpoints.web.exposure.include=*
+    4 eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+    5 spring.cloud.gateway.discovery.locator.enabled=true
+    6 spring.cloud.gateway.discovery.locator.lowerCaseServiceId=true
+    7 #spring.cloud.gateway.routes.predicates.Path=/**
+    8 spring.cloud.gateway.globalcors.cors.corsConfigurations=[/**]
+    9 spring.cloud.gateway.globalcors.cors.corsConfigurations.allowedOrigins=*
+   10 spring.cloud.gateway.globalcors.cors.corsConfigurations.allowedMethods=*
+   11 
+   12 
+   13 
+   14 spring.cloud.gateway.routes[0].id=recruitmentapp
+   15 spring.cloud.gateway.routes[0].uri=lb://recruitmentapp
+   16 spring.cloud.gateway.routes[0].predicates[0]=Path=/**
+Gateway/src/main/resources/bootstrap.properties
+    1 spring.application.name=gateway
+    2 spring.cloud.gateway.discovery.locator.enabled=true
+    3 spring.cloud.consul.discovery.health-check-path=/actuator/health
+
+
+
+RecruitmentAgency/src/main/java/com/recruitment/app/RecruitmentAgencyApplication.java
+    1 package com.recruitment.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    6 import org.springframework.context.annotation.ComponentScan;
+    7 
+    8 @SpringBootApplication
+    9 @ComponentScan(basePackages= {"com.recruitment.model","com.recruitment.controller","com.recruitment.service","com.recruitment.exception"})
+   10 @EnableDiscoveryClient
+   11 public class RecruitmentAgencyApplication {
+   12 
+   13 	public static void main(String[] args) {
+   14 		SpringApplication.run(RecruitmentAgencyApplication.class, args);
+   15 	}
+   16 
+   17 }
+   18 
+RecruitmentAgency/src/main/java/com/recruitment/controller/RecruitmentController.java
+    1 package com.recruitment.controller;
+    2 
+    3 import java.util.List;
+    4 import java.util.Map;
+    5 
+    6 import org.springframework.beans.factory.annotation.Autowired;
+    7 import org.springframework.stereotype.Controller;
+    8 import org.springframework.validation.annotation.Validated;
+    9 import org.springframework.web.bind.WebDataBinder;
+   10 import org.springframework.web.bind.annotation.DeleteMapping;
+   11 import org.springframework.web.bind.annotation.GetMapping;
+   12 import org.springframework.web.bind.annotation.InitBinder;
+   13 import org.springframework.web.bind.annotation.PathVariable;
+   14 import org.springframework.web.bind.annotation.PostMapping;
+   15 import org.springframework.web.bind.annotation.RequestBody;
+   16 import org.springframework.web.bind.annotation.RestController;
+   17 
+   18 import com.recruitment.exception.CandidateAlreadyExistsException;
+   19 import com.recruitment.model.Candidate;
+   20 import com.recruitment.service.IRecruitmentService;
+   21 
+   22 
+   23 @RestController
+   24 public class RecruitmentController {
+   25 	
+   26 	@Autowired
+   27 	private IRecruitmentService service;
+   28 	
+   29 	@PostMapping(value = "/register",produces = "application/json")
+   30 	public Candidate registerCandidate(@RequestBody @Validated Candidate candidate) throws CandidateAlreadyExistsException {	 	  	    	    		        	 	
+   31 		System.out.println("registerrrrrrrrrrrrrrrrrrrrrrrr");
+   32 		return service.registerCandidate(candidate);
+   33 	}
+   34 	
+   35 	@GetMapping(value="/view",produces = "application/json")
+   36 	public Map<String,List<Candidate>> viewCandidateBasedonPosition(){
+   37 		System.out.println("viewwwwwwwwww");
+   38 		return service.viewCandidateBasedonPosition();
+   39 		
+   40 	}
+   41 	
+   42 	@GetMapping(value="/filter/{yearsOfExperience}",produces = "application/json")
+   43 	public List<Candidate> filterCandidate(@PathVariable int yearsOfExperience){
+   44 		System.out.println("filterrrrrrrrrrrrrrrrr");
+   45 		return service.filterCandidate(yearsOfExperience);
+   46 		
+   47 	}
+   48 	
+   49 	@DeleteMapping(value="/remove")
+   50 	public int removeCandidate() {
+   51 		System.out.println("removeeeeeeeeeeeeeeeeeeee");
+   52 		return service.removeCandidate();
+   53 	}
+   54 
+   55 }
+   56 	 	  	    	    		        	 	
+   57 
+RecruitmentAgency/src/main/java/com/recruitment/exception/CandidateAlreadyExistsException.java
+    1 package com.recruitment.exception;
+    2 
+    3 import org.springframework.http.HttpStatus;
+    4 import org.springframework.web.bind.annotation.ResponseStatus;
+    5 
+    6 @ResponseStatus(HttpStatus.NOT_FOUND)
+    7 public class CandidateAlreadyExistsException extends Exception{
+    8 
+    9 	public CandidateAlreadyExistsException(String message) {
+   10 		super(message);
+   11 		// TODO Auto-generated constructor stub
+   12 	}
+   13 	
+   14 	
+   15 	
+   16 
+   17 }
+   18 
+RecruitmentAgency/src/main/java/com/recruitment/exception/CustomizedResponseEntityExceptionHandler.java
+    1 package com.recruitment.exception;
+    2 
+    3 import java.time.LocalDate;
+    4 
+    5 import org.springframework.http.HttpHeaders;
+    6 import org.springframework.http.HttpStatus;
+    7 import org.springframework.http.HttpStatusCode;
+    8 import org.springframework.http.ResponseEntity;
+    9 import org.springframework.validation.ObjectError;
+   10 import org.springframework.web.bind.MethodArgumentNotValidException;
+   11 import org.springframework.web.bind.annotation.ControllerAdvice;
+   12 import org.springframework.web.bind.annotation.ExceptionHandler;
+   13 import org.springframework.web.bind.annotation.RestController;
+   14 import org.springframework.web.context.request.WebRequest;
+   15 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+   16 
+   17 
+   18 
+   19 import lombok.extern.slf4j.Slf4j;
+   20 
+   21 @ControllerAdvice
+   22 @RestController
+   23 @Slf4j
+   24 public class CustomizedResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
+   25 
+   26 
+   27 	@ExceptionHandler(Exception.class)
+   28 	public final ResponseEntity<Object> handleAllExceptions(Exception ex, WebRequest request) {
+   29 
+   30 
+   31 		ExceptionResponse exceptionResponse = new ExceptionResponse(LocalDate.now(), ex.getMessage(),
+   32 				request.getDescription(false),HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
+   33 		log.error(ex.getMessage());
+   34 		return new ResponseEntity(exceptionResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+   35 	}
+   36 
+   37 
+   38 	public final ResponseEntity<ExceptionResponse> handleNotFoundException(CandidateAlreadyExistsException ex, WebRequest request) {	 	  	    	    		        	 	
+   39 		ExceptionResponse exceptionResponse = new ExceptionResponse(LocalDate.now(), ex.getMessage(),
+   40 				request.getDescription(false),HttpStatus.NOT_FOUND.getReasonPhrase());
+   41 		log.error(ex.getMessage());
+   42 		return new ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.NOT_FOUND);
+   43 	}
+   44 
+   45 	@Override
+   46 	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+   47 
+   48 		HttpHeaders headers, HttpStatusCode status, WebRequest request) {	
+   49 		String details = "";
+   50 			for(ObjectError error : ex.getBindingResult().getAllErrors()) {
+   51 				details+=error.getDefaultMessage()+", ";
+   52 			}
+   53 			//sysout
+   54 			ExceptionResponse exceptionResponse = new ExceptionResponse(LocalDate.now(),details,
+   55 					request.getDescription(false),HttpStatus.BAD_REQUEST.getReasonPhrase());
+   56 
+   57 			log.error("validation :"+details);
+   58 
+   59 			return new ResponseEntity(exceptionResponse , HttpStatus.BAD_REQUEST);
+   60 		}
+   61 
+   62 
+   63 }	 	  	    	    		        	 	
+   64 
+RecruitmentAgency/src/main/java/com/recruitment/exception/ExceptionResponse.java
+    1 package com.recruitment.exception;
+    2 
+    3 import java.time.LocalDate;
+    4 
+    5 
+    6 
+    7 import lombok.AllArgsConstructor;
+    8 import lombok.Data;
+    9 import lombok.Getter;
+   10 import lombok.Setter;
+   11 @Data
+   12 @Getter
+   13 @Setter
+   14 @AllArgsConstructor
+   15 public class ExceptionResponse {
+   16 	private LocalDate timestamp;
+   17 	  private String message;
+   18 	  private String details;
+   19 	  private String httpCodeMessage;
+   20 }
+   21 
+RecruitmentAgency/src/main/java/com/recruitment/model/Candidate.java
+    1 package com.recruitment.model;
+    2 
+    3 
+    4 import jakarta.validation.constraints.Min;
+    5 import jakarta.validation.constraints.NotEmpty;
+    6 import jakarta.validation.constraints.NotNull;
+    7 
+    8 
+    9 import lombok.AllArgsConstructor;
+   10 import lombok.Data;
+   11 import lombok.Getter;
+   12 import lombok.NoArgsConstructor;
+   13 import lombok.Setter;
+   14 
+   15 @Data
+   16 @Getter
+   17 @Setter
+   18 public class Candidate {
+   19 	
+   20 	@NotEmpty(message="Provide value for candidate Id")
+   21 	private String candidateId	;
+   22 	private String candidateName;	
+   23 	@NotNull(message="Provide value for mobile number")
+   24 	private String mobileNumber	;
+   25 	@NotEmpty(message="Provide value for email Id")
+   26 	private String emailId	;
+   27 	private String positionAppliedFor	;
+   28 	private Integer yearsOfExperience	;
+   29 	@Min(value = 0, message = "Provide value greater than or equal to zero")
+   30 	private double expectedSalary	;
+   31 	
+   32 	private String Status	;
+   33 
+   34 	
+   35 
+   36 
+   37 	public Candidate() {	 	  	    	    		        	 	
+   38 		
+   39 	}
+   40 
+   41 
+   42 
+   43 
+   44 	public Candidate(String candidateId, String candidateName, String mobileNumber, String emailId,
+   45 			String positionAppliedFor, Integer yearsOfExperience, double expectedSalary, String status) {
+   46 		super();
+   47 		this.candidateId = candidateId;
+   48 		this.candidateName = candidateName;
+   49 		this.mobileNumber = mobileNumber;
+   50 		this.emailId = emailId;
+   51 		this.positionAppliedFor = positionAppliedFor;
+   52 		this.yearsOfExperience = yearsOfExperience;
+   53 		this.expectedSalary = expectedSalary;
+   54 		Status = status;
+   55 	}
+   56 }
+   57 
+RecruitmentAgency/src/main/java/com/recruitment/service/IRecruitmentService.java
+    1 package com.recruitment.service;
+    2 
+    3 import java.util.List;
+    4 import java.util.Map;
+    5 
+    6 import com.recruitment.exception.CandidateAlreadyExistsException;
+    7 import com.recruitment.model.Candidate;
+    8 
+    9 public interface IRecruitmentService {
+   10 	
+   11 	public Candidate registerCandidate(Candidate candidate) throws CandidateAlreadyExistsException;
+   12 	
+   13 	public Map<String,List<Candidate>> viewCandidateBasedonPosition();
+   14 	
+   15 	public List<Candidate> filterCandidate(int yearsOfExperience);
+   16 	public int removeCandidate() ;
+   17 
+   18 }
+   19 
+RecruitmentAgency/src/main/java/com/recruitment/service/RecruitmentServiceImpl.java
+    1 package com.recruitment.service;
+    2 
+    3 import java.util.ArrayList;
+    4 import java.util.HashMap;
+    5 import java.util.Iterator;
+    6 import java.util.List;
+    7 import java.util.Map;
+    8 
+    9 import org.springframework.stereotype.Service;
+   10 
+   11 import com.recruitment.exception.CandidateAlreadyExistsException;
+   12 import com.recruitment.model.Candidate;
+   13 
+   14 
+   15 import lombok.extern.slf4j.Slf4j;
+   16 
+   17 @Service
+   18 @Slf4j
+   19 
+   20 public class RecruitmentServiceImpl implements IRecruitmentService {
+   21 
+   22 	private static List<Candidate> candidateList=new ArrayList<Candidate>();
+   23 	
+   24 	
+   25 	public RecruitmentServiceImpl() {
+   26 		System.out.println("in serviceeeeeeeeeeeeeeeeeeee"+candidateList.size());
+   27 		candidateList.add(new Candidate("111", "sudhac", "9876543210", "sudha@gmail.com", "Manager", 10, 500000.0, "not recruited"));
+   28 		candidateList.add(new Candidate("222", "sharvin", "9876543211", "sharvin@gmail.com", "HR", 9, 500000.0, "not recruited"));
+   29 		candidateList.add(new Candidate("322", "vishahan", "9876593411", "vishahan@gmail.com", "HR", 10, 500000.0, "recruited"));
+   30 		candidateList.add(new Candidate("444", "arav", "9876593211", "arav@gmail.com", "Manager", 10, 500000.0, "recruited"));
+   31 	}
+   32 	
+   33 	/*
+   34 	 * This method should add the candidate object to the candidateList, before adding it shoulkd check
+   35 	 * whether the email id of the candidate is already available, if available throw an exception
+   36 	 * else add the candidate object into the list
+   37 	 */
+   38 	public Candidate registerCandidate(Candidate candidate) throws CandidateAlreadyExistsException {	 	  	    	    		        	 	
+   39 		
+   40 		for(Candidate c:candidateList) {
+   41 			if(c!=null && c.getEmailId().equals(candidate.getEmailId())){
+   42 				log.error("Candidate already exists with us");
+   43 				throw new CandidateAlreadyExistsException("Candidate already exists with us");
+   44 			}
+   45 		
+   46 		}
+   47 		log.info("Candidate with id "+ candidate.getCandidateId()+" registered successfully");
+   48 		candidateList.add(candidate);
+   49 		return candidate;
+   50 		
+   51 	}
+   52 
+   53 	/*
+   54 	 * This method should return the Map as position applied for as a key and list of candidates who applied for that position as value.
+   55 	 */
+   56 	public Map<String, List<Candidate>> viewCandidateBasedonPosition() {
+   57 		// TODO Auto-generated method stub
+   58 Map<String,List<Candidate>> temp=new HashMap<String, List<Candidate>>();
+   59 		
+   60 		for(Candidate c : candidateList)
+   61 		{
+   62 			String position=c.getPositionAppliedFor();
+   63 			if(!temp.containsKey(position)){
+   64 				temp.put(position,new ArrayList());
+   65 			}
+   66 			List<Candidate> list=temp.get(position);
+   67 			list.add(c);
+   68 			temp.put(position, list);
+   69 		}		
+   70 		log.info("View candidate based on position is successful");
+   71 		return temp;
+   72 		
+   73 	}
+   74 
+   75 	/*
+   76 	 * This method should accept the years of experience as input and it should  
+   77 	 *  iterate the candidateList and return the list of candidates who have that experience.
+   78 	 */
+   79 	public List<Candidate> filterCandidate(int yearsOfExperience) {	 	  	    	    		        	 	
+   80 		System.out.println("sizeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee:"+candidateList.size());
+   81 		List<Candidate> cList=new ArrayList<Candidate>();
+   82 		for(Candidate c:candidateList) {
+   83 			if(c!=null && c.getYearsOfExperience()==yearsOfExperience){
+   84 				cList.add(c);
+   85 			}
+   86 			
+   87 		}
+   88 		log.info("View candidate based on the experience is successfully done");
+   89 		return cList;
+   90 	}
+   91 
+   92 	
+   93 	/*
+   94 	 * This method should remove the candidate based on the status. 
+   95 	 * If the status is recruited then remove all those candidates.
+   96 	 * This method should return the number of candidates removed.
+   97 	 */
+   98 	public int removeCandidate() {
+   99 		// TODO Auto-generated method stub
+  100 		int count=0;
+  101 		 Iterator i = candidateList.iterator();
+  102 	      Candidate d;
+  103 	      while (i.hasNext()) {
+  104 	         d = (Candidate) i.next();
+  105 	         if (d.getStatus().equals("recruited")) {
+  106 	            i.remove();
+  107 	           count++;
+  108 	         }
+  109 	      }
+  110 		
+  111 	      log.info(count+" candidate recruited via Employ Me");
+  112 		return count;
+  113 	}
+  114 
+  115 	public static List<Candidate> getCandidateList() {	 	  	    	    		        	 	
+  116 		return candidateList;
+  117 	}
+  118 
+  119 	public static void setCandidateList(List<Candidate> candidateList) {
+  120 		RecruitmentServiceImpl.candidateList = candidateList;
+  121 	}
+  122 
+  123 	
+  124 	
+  125 
+  126 	
+  127 }
+  128 
+RecruitmentAgency/src/main/resources/application.properties
+    1 server.port=9096
+    2 logging.config=src/main/resources/logger.xml
+    3 eureka.client.serviceUrl.defaultZone  = http://localhost:8761/eureka
+    4 eureka.client.instance.preferIpAddress = true
+    5 spring.application.name = recruitmentapp
+    6 
+    7 
+RecruitmentAgency/src/main/resources/logger.xml
+    1 <?xml version="1.0" encoding="UTF-8"?>
+    2 <configuration>
+    3     <property name="HOME_LOG" value="log/mylogs.log"/>
+    4 
+    5     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    6         <layout class="ch.qos.logback.classic.PatternLayout">
+    7             <Pattern>
+    8                 %d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n
+    9             </Pattern>
+   10         </layout>
+   11     </appender>
+   12 
+   13     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+   14         <file>${HOME_LOG}</file>
+   15         
+   16         <append>true</append>
+   17         <encoder>
+   18             <pattern>[%-5level] %d{dd-MM-yyyy hh:mm:ss.SSS a} [%thread]  %logger{50} - %msg%n</pattern>
+   19         </encoder>
+   20     </appender>
+   21 
+   22 
+   23 <!-- additivity as false appends only to file and not to console -->
+   24     <logger name="com.recruitment.service" level="info" additivity="false">
+   25         <!-- <appender-ref ref="CONSOLE"/> -->
+   26         <appender-ref ref="FILE"/>
+   27     </logger>
+   28 
+   29 	<logger name="com.recruitment.exception" level="info" additivity="false">
+   30         <!-- <appender-ref ref="CONSOLE"/> -->
+   31         <appender-ref ref="FILE"/>
+   32     </logger>
+   33 	
+   34     <root level="debug">
+   35         <appender-ref ref="CONSOLE"/>
+   36     </root>
+   37 </configuration>
+
+
+
+RecruitmentApplication/src/main/java/com/recruitment/app/RecruitmentApplication.java
+    1 package com.recruitment.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    6 import org.springframework.cloud.openfeign.EnableFeignClients;
+    7 import org.springframework.context.annotation.ComponentScan;
+    8 
+    9 @SpringBootApplication
+   10 @EnableDiscoveryClient
+   11 @EnableFeignClients(basePackages= {"com.recruitment.controller","com.recruitment.proxy"})
+   12 @ComponentScan(basePackages= {"com.recruitment.*"})
+   13 
+   14 public class RecruitmentApplication {
+   15 
+   16 	public static void main(String[] args) {
+   17 		SpringApplication.run(RecruitmentApplication.class, args);
+   18 	}
+   19 
+   20 }
+   21 
+RecruitmentApplication/src/main/java/com/recruitment/controller/ApplicationController.java
+    1 package com.recruitment.controller;
+    2 
+    3 import org.springframework.beans.factory.annotation.Autowired;
+    4 import org.springframework.web.bind.annotation.GetMapping;
+    5 import org.springframework.web.bind.annotation.PathVariable;
+    6 import org.springframework.web.bind.annotation.ResponseBody;
+    7 import org.springframework.web.bind.annotation.RestController;
+    8 import org.springframework.web.client.RestTemplate;
+    9 
+   10 import com.recruitment.proxy.ServiceProxy;
+   11 
+   12 //import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+   13 
+   14 
+   15 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+   16 @RestController
+   17 public class ApplicationController {
+   18 
+   19 	@Autowired
+   20 	private ServiceProxy proxy;
+   21 	
+   22 	@GetMapping(value="/greet")
+   23 	@CircuitBreaker(name="myCircuitBreaker",fallbackMethod="fallback")
+   24 	
+   25 	public String retreiveInfo( ) {
+   26 		
+   27 		return proxy.greeting();
+   28 		
+   29 	}
+   30 	
+   31 	public String fallback(Exception e) {
+   32 		return "Sorry Service is unavailable";
+   33 	}
+   34 	
+   35 }
+   36 	 	  	    	    		        	 	
+   37 
+RecruitmentApplication/src/main/java/com/recruitment/proxy/ServiceProxy.java
+    1 package com.recruitment.proxy;
+    2 
+    3 
+    4 
+    5 import org.springframework.cloud.openfeign.FeignClient;
+    6 import org.springframework.web.bind.annotation.GetMapping;
+    7 import org.springframework.web.bind.annotation.PathVariable;
+    8 import org.springframework.web.bind.annotation.RequestMapping;
+    9 import org.springframework.web.bind.annotation.ResponseBody;
+   10 //import org.springframework.cloud.openfeign.FeignClient;   
+   11 @FeignClient(name="RestaurantGreeting" )
+   12 public interface ServiceProxy {
+   13 	
+   14 	   @RequestMapping("/welcome")
+   15 	   public String greeting();
+   16 //	   @RequestMapping(value="/welcome/{name}")
+   17 //	   public String greeting( String name);
+   18 	   
+   19 
+   20 }
+   21 
+RecruitmentApplication/src/main/resources/application.properties
+     server.port=8090
+
+
+RecruitmentGreeting/src/main/java/com/recruitment/app/RecruitmentGreetingApplication.java
+    1 package com.recruitment.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.context.annotation.ComponentScan;
+    6 
+    7 @SpringBootApplication
+    8 @ComponentScan(basePackages= {"com.recruitment.controller"})
+    9 public class RecruitmentGreetingApplication {
+   10 
+   11 	public static void main(String[] args) {
+   12 		SpringApplication.run(RecruitmentGreetingApplication.class, args);
+   13 	}
+   14 
+   15 }
+   16 
+RecruitmentGreeting/src/main/java/com/recruitment/controller/GreetingController.java
+    1 package com.recruitment.controller;
+    2 
+    3 import org.springframework.web.bind.annotation.GetMapping;
+    4 import org.springframework.web.bind.annotation.ResponseBody;
+    5 import org.springframework.web.bind.annotation.RestController;
+    6 
+    7 @RestController
+    8 public class GreetingController {
+    9 
+   10 	
+   11 	@GetMapping(value="/welcome")
+   12 	public @ResponseBody String greeting( ) {
+   13 		
+   14 		return "Employee Me Recruitment is a leading recruiter agency and a leading provider of jobs in India.";
+   15 		
+   16 	}
+   17 }
+   18 
+RecruitmentGreeting/src/main/resources/application.properties
+    1 server.port=8091
+    2 spring.application.name = RestaurantGreeting
+
+
+Registry/src/main/java/com/example/RegistryApplication.java
+    1 package com.example;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+    6 
+    7 @EnableEurekaServer
+    8 @SpringBootApplication
+    9 public class RegistryApplication {
+   10 
+   11 	public static void main(String[] args) {
+   12 		SpringApplication.run(RegistryApplication.class, args);
+   13 	}
+   14 
+   15 }
+   16 
+Registry/src/main/resources/application.properties
+    1 eureka.client.registerWithEureka = false
+    2 eureka.client.fetchRegistry = false
+    3 server.port = 8761
+Grade
+Reviewed on Tuesday, 28 January 2025, 12:07 AM by Automatic grade
+Grade 100 / 100
+Assess
+
+
+
+==================================================
+
+ShipwreckStore - Boot with MicroServices - Cloud Gateway- Version Update
+=================================================
+
+ShipwreckStoreGreeting/src/main/java/com/shipwreckstore/app/ShipwreckStoreGreetingApplication.java
+    1 package com.shipwreckstore.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.context.annotation.ComponentScan;
+    6 
+    7 @SpringBootApplication
+    8 @ComponentScan(basePackages= {"com.shipwreckstore.controller"})
+    9 public class ShipwreckStoreGreetingApplication {
+   10 
+   11 	public static void main(String[] args) {
+   12 		SpringApplication.run(ShipwreckStoreGreetingApplication.class, args);
+   13 	}
+   14 
+   15 }
+   16 
+ShipwreckStoreGreeting/src/main/java/com/shipwreckstore/controller/GreetingController.java
+    1 package com.shipwreckstore.controller;
+    2 
+    3 import org.springframework.web.bind.annotation.GetMapping;
+    4 import org.springframework.web.bind.annotation.PathVariable;
+    5 import org.springframework.web.bind.annotation.ResponseBody;
+    6 import org.springframework.web.bind.annotation.RestController;
+    7 
+    8 @RestController
+    9 public class GreetingController {
+   10 
+   11 	
+   12 	@GetMapping(value="/welcome")
+   13 	public @ResponseBody String greeting( ) {
+   14 		
+   15 		return "Welcome to Shipwreck store. It is a store that specializes in equipment or supplies related to scuba diving or marine salvage, which are often used in the exploration and recovery of shipwrecks.Spread over an area of 2,600 sq ft.";
+   16 		
+   17 	}
+   18 }
+   19 
+   20 
+ShipwreckStoreGreeting/src/main/resources/application.properties
+    1 server.port=8091
+    2 spring.application.name = ShipwreckStoreGreeting
+
+
+ShipwreckStoreService/src/main/java/com/shipwreckstore/app/ShipwreckStoreServiceApplication.java
+    1 package com.shipwreckstore.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    6 import org.springframework.context.annotation.ComponentScan;
+    7 @SpringBootApplication
+    8 @EnableDiscoveryClient
+    9 @ComponentScan(basePackages={"com.shipwreckstore.model","com.shipwreckstore.controller","com.shipwreckstore.service","com.shipwreckstore.exception","com.shipwreckstore.validation"})
+   10 public class ShipwreckStoreServiceApplication {
+   11 
+   12 	public static void main(String[] args) {
+   13 		SpringApplication.run(ShipwreckStoreServiceApplication.class, args);
+   14 	}
+   15 
+   16 }
+   17 
+ShipwreckStoreService/src/main/java/com/shipwreckstore/controller/ShipController.java
+    1 package com.shipwreckstore.controller;
+    2 
+    3 import java.util.List;
+    4 import com.shipwreckstore.exception.InvalidShipException;
+    5 import com.shipwreckstore.exception.ShipNotAvailableException;
+    6 import com.shipwreckstore.model.Ship;
+    7 import com.shipwreckstore.service.*;
+    8 import org.springframework.beans.factory.annotation.Autowired;
+    9 import org.springframework.validation.annotation.Validated;
+   10 import org.springframework.web.bind.WebDataBinder;
+   11 import org.springframework.web.bind.annotation.*;
+   12 
+   13 @RestController
+   14 @RequestMapping
+   15 public class ShipController {
+   16 	
+   17 		@Autowired
+   18 		private IShipService shipServiceImpl;
+   19 		
+   20 		@PostMapping(value="/addShip",produces="application/json")
+   21 		public Ship addShip(@RequestBody @Validated Ship ship) throws InvalidShipException {	
+   22 
+   23 			return shipServiceImpl.addShip(ship);
+   24 		}
+   25 	    @PutMapping(value="/updateDepth/{shipID}/{depth}",produces="application/json")
+   26 		public Ship updateDepth(@PathVariable String shipID, @PathVariable int depth) throws ShipNotAvailableException {
+   27 		
+   28 			  return shipServiceImpl.updateDepth(shipID,depth);
+   29 		}
+   30 		@GetMapping(value="/getShipWithGoodCondition",produces="application/json")
+   31 		public List<Ship> getShipWithGoodCondition()  {
+   32 			return shipServiceImpl.getShipWithGoodCondition();
+   33 		}
+   34 	    @GetMapping(value="/getShipWithFairCondition",produces="application/json")
+   35 		public List<Ship> getShipWithFairCondition()  {
+   36 			return shipServiceImpl.getShipWithFairCondition();
+   37 		}
+   38 			
+   39 	}
+   40 
+   41 
+ShipwreckStoreService/src/main/java/com/shipwreckstore/exception/CustomizedResponseEntityExceptionHandler.java
+    1 package com.shipwreckstore.exception;
+    2 
+    3 import org.springframework.http.HttpHeaders;
+    4 import org.springframework.http.HttpStatus;
+    5 import org.springframework.http.HttpStatusCode;
+    6 import org.springframework.http.ResponseEntity;
+    7 import org.springframework.validation.ObjectError;
+    8 import org.springframework.web.bind.MethodArgumentNotValidException;
+    9 import org.springframework.web.context.request.WebRequest;
+   10 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+   11 import org.springframework.web.bind.annotation.ControllerAdvice;
+   12 import org.springframework.web.bind.annotation.ExceptionHandler;
+   13 import org.springframework.web.bind.annotation.RestController;
+   14 import lombok.extern.slf4j.Slf4j;
+   15 import java.time.LocalDate;
+   16 @ControllerAdvice
+   17 @RestController
+   18 @Slf4j
+   19 public class CustomizedResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
+   20 	
+   21 	@ExceptionHandler(Exception.class)
+   22     public final ResponseEntity<Object> handleAllExceptions(Exception ex, WebRequest request) 
+   23     {
+   24         ExceptionResponse exceptionResponse=new ExceptionResponse(LocalDate.now(),ex.getMessage(),request.getDescription(false),HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
+   25         log.error(ex.getMessage());
+   26         return new ResponseEntity(exceptionResponse,HttpStatus.INTERNAL_SERVER_ERROR);
+   27 	}
+   28 
+   29 	@ExceptionHandler(ShipNotAvailableException.class)
+   30   	public final ResponseEntity<ExceptionResponse> handleNotFoundException(ShipNotAvailableException ex, WebRequest request) 
+   31 	{
+   32 	   ExceptionResponse exceptionResponse=new ExceptionResponse(LocalDate.now(),ex.getMessage(),request.getDescription(false),HttpStatus.NOT_FOUND.getReasonPhrase());
+   33         log.error(ex.getMessage());
+   34         return new ResponseEntity<ExceptionResponse>(exceptionResponse,HttpStatus.NOT_FOUND);
+   35 	}
+   36 	
+   37     @ExceptionHandler(InvalidShipException.class)
+   38 	public final ResponseEntity<ExceptionResponse> handleInvalidException(InvalidShipException ex, WebRequest request) 
+   39 	{	 	  	    	    		        	 	
+   40 		ExceptionResponse exceptionResponse=new ExceptionResponse(LocalDate.now(),ex.getMessage(),request.getDescription(false),HttpStatus.NOT_FOUND.getReasonPhrase());
+   41         log.error(ex.getMessage());
+   42         return new ResponseEntity<ExceptionResponse>(exceptionResponse,HttpStatus.NOT_FOUND);
+   43 	}	
+   44   
+   45 @Override
+   46 protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+   47         HttpHeaders headers, HttpStatusCode status, WebRequest request) {	
+   48 	
+   49         String details="";
+   50         for(ObjectError error:ex.getBindingResult().getAllErrors()){
+   51             details+=error.getDefaultMessage()+", ";
+   52         }
+   53         ExceptionResponse exceptionResponse=new ExceptionResponse(LocalDate.now(),details,request.getDescription(false),HttpStatus.BAD_REQUEST.getReasonPhrase());
+   54         log.error("validation :"+details);
+   55 		return new ResponseEntity(exceptionResponse,HttpStatus.BAD_REQUEST);
+   56 	}
+   57 }
+   58 
+ShipwreckStoreService/src/main/java/com/shipwreckstore/exception/ExceptionResponse.java
+    1 package com.shipwreckstore.exception;
+    2 
+    3 import java.time.LocalDate;
+    4 
+    5 public class ExceptionResponse {
+    6 	  private LocalDate timestamp;
+    7 	  private String message;
+    8 	  private String details;
+    9 	  private String httpCodeMessage;
+   10 	public LocalDate getTimestamp() {
+   11 		return timestamp;
+   12 	}
+   13 	public void setTimestamp(LocalDate timestamp) {
+   14 		this.timestamp = timestamp;
+   15 	}
+   16 	public String getMessage() {
+   17 		return message;
+   18 	}
+   19 	public void setMessage(String message) {
+   20 		this.message = message;
+   21 	}
+   22 	public String getDetails() {
+   23 		return details;
+   24 	}
+   25 	public void setDetails(String details) {
+   26 		this.details = details;
+   27 	}
+   28 	public String getHttpCodeMessage() {
+   29 		return httpCodeMessage;
+   30 	}
+   31 	public void setHttpCodeMessage(String httpCodeMessage) {
+   32 		this.httpCodeMessage = httpCodeMessage;
+   33 	}
+   34 	public ExceptionResponse(LocalDate timestamp, String message, String details, String httpCodeMessage) {
+   35 		super();
+   36 		this.timestamp = timestamp;
+   37 		this.message = message;
+   38 		this.details = details;
+   39 		this.httpCodeMessage = httpCodeMessage;
+   40 	}
+   41 	public ExceptionResponse() {
+   42 		
+   43 	}
+   44 	  
+   45 
+   46 }
+   47 
+   48 
+   49 
+ShipwreckStoreService/src/main/java/com/shipwreckstore/exception/InvalidShipException.java
+    1 package com.shipwreckstore.exception;
+    2 import org.springframework.web.bind.annotation.ResponseStatus;
+    3 import org.springframework.http.HttpStatus;
+    4 
+    5 @ResponseStatus(HttpStatus.NOT_FOUND)
+    6 public class InvalidShipException extends Exception{
+    7 	
+    8 	String message;
+    9     public InvalidShipException(String message){
+   10         super(message);
+   11         this.message=message;
+   12     }
+   13 	
+   14 }
+   15 
+ShipwreckStoreService/src/main/java/com/shipwreckstore/exception/ShipNotAvailableException.java
+    1 package com.shipwreckstore.exception;
+    2 import org.springframework.web.bind.annotation.ResponseStatus;
+    3 import org.springframework.http.HttpStatus;
+    4 
+    5 @ResponseStatus(HttpStatus.NOT_FOUND)
+    6 public class ShipNotAvailableException extends Exception{
+    7 	
+    8 	String message;
+    9     public ShipNotAvailableException(String message){
+   10         super(message);
+   11         this.message=message;
+   12     }
+   13 	
+   14 }
+   15 
+ShipwreckStoreService/src/main/java/com/shipwreckstore/model/Ship.java
+    1 package com.shipwreckstore.model;
+    2 
+    3 import java.time.LocalDate;
+    4 
+    5 import jakarta.validation.constraints.Min;
+    6 import jakarta.validation.constraints.NotEmpty;
+    7 import jakarta.validation.constraints.NotNull;
+    8 import org.hibernate.validator.constraints.NotBlank;
+    9 import lombok.*;
+   10 
+   11 @AllArgsConstructor
+   12 @Getter
+   13 @Setter
+   14 @NoArgsConstructor
+   15 public class Ship {
+   16 	
+   17 	@NotEmpty(message="required valid ship id")
+   18 	private String shipID;
+   19 	@NotEmpty(message="required ship name")
+   20 	private String shipName;
+   21 	@NotEmpty(message="required description")
+   22 	private String description;
+   23 	@NotEmpty(message="required condition")
+   24 	private String condition;
+   25 	@Min(value=0,message="depth should not be negative")
+   26 	private Integer depth;
+   27 	@NotNull(message="latitude should not be null")
+   28 	private Double latitude;
+   29 	@NotNull(message="longitude should not be null")
+   30 	private Double longitude;
+   31 	@NotNull(message="YearDiscovered should not be null")
+   32 	private LocalDate yearDiscovered;
+   33 	
+   34 	public String getShipID() {
+   35 		return shipID;
+   36 	}
+   37 	
+   38 
+   39 }
+   40 
+ShipwreckStoreService/src/main/java/com/shipwreckstore/service/IShipService.java
+    1 package com.shipwreckstore.service;
+    2 
+    3 import java.util.List;
+    4 
+    5 import com.shipwreckstore.exception.*;
+    6 import com.shipwreckstore.model.*;
+    7 
+    8 public interface IShipService {
+    9 	
+   10 	public Ship addShip(Ship ship)  throws InvalidShipException;
+   11 	public Ship updateDepth(String shipID,int depth)  throws ShipNotAvailableException;
+   12 	public List<Ship> getShipWithGoodCondition() ;
+   13 	public List<Ship> getShipWithFairCondition() ;
+   14 	
+   15 }
+   16 
+ShipwreckStoreService/src/main/java/com/shipwreckstore/service/ShipServiceImpl.java
+    1 package com.shipwreckstore.service;
+    2 
+    3 import java.time.LocalDate;
+    4 import java.util.ArrayList;
+    5 import java.util.List;
+    6 import org.springframework.stereotype.Service;
+    7 import com.shipwreckstore.exception.*;
+    8 import com.shipwreckstore.model.*;
+    9 import lombok.extern.slf4j.Slf4j;
+   10 
+   11 @Slf4j
+   12 @Service
+   13 public class ShipServiceImpl implements IShipService{
+   14 	
+   15 private static List<Ship> shipList=new ArrayList<Ship>();	  
+   16 	
+   17 	public static List<Ship> getShipList() {
+   18 		return shipList;
+   19 	}
+   20 
+   21 	public static void setShipList(List<Ship> shipList) {
+   22 		ShipServiceImpl.shipList = shipList;
+   23 	}
+   24 	
+   25 	
+   26 	// Implement the service methods as per the requirement	
+   27 
+   28 	public Ship updateDepth( String shipID,int depth)throws ShipNotAvailableException{
+   29 		boolean flag=false;
+   30 		Ship b1=null;
+   31 		for(Ship b:shipList){
+   32 		    if(b.getShipID().equals(shipID)){
+   33 		        b1=b;
+   34 		        b.setDepth(depth);
+   35 		        flag=true;
+   36 		        break;
+   37 		    }
+   38 		}
+   39 		if(flag){
+   40 		    log.info("Ship "+shipID+" depth updated successfully to "+depth);
+   41 		    return b1;
+   42 		}
+   43 		else{
+   44 		    log.error("Ship with "+shipID+" not available to update the depth");
+   45 		    throw new ShipNotAvailableException("Ship with "+shipID+" not available to update the depth");
+   46 		}
+   47 		
+   48 	}
+   49 	
+   50 	public Ship addShip( Ship ship)  throws InvalidShipException{	
+   51 		if(getShip(ship)==null){
+   52 		    shipList.add(ship);
+   53 		    log.info("ship with shipID"+ship.getShipID()+" added successfully");
+   54 		}
+   55 		else{
+   56 		    log.error("Ship with "+ship.getShipID()+" already exists!");
+   57 		    throw new InvalidShipException("Ship with "+ship.getShipID()+" already exists!");
+   58 		}	
+   59 		return ship;
+   60 	}
+   61 		
+   62 	public Ship getShip(Ship b1) {
+   63 	    for(Ship b:shipList){
+   64 	        if(b.getShipID().equals(b1.getShipID())){
+   65 	            return b;
+   66 	        }
+   67 	    }
+   68 		return null;
+   69 }
+   70 	
+   71 	public List<Ship> getShipWithGoodCondition()  {
+   72 		
+   73 		List<Ship> sList=new ArrayList<Ship>();
+   74 		for(Ship s:shipList){
+   75 		    if(s.getCondition().equalsIgnoreCase("Good")){
+   76 		        sList.add(s);
+   77 		    }
+   78 		}
+   79 		log.info("Get Ships with good condition is successfully done");
+   80 	    return sList;
+   81 		
+   82 	}
+   83 	
+   84 	public List<Ship> getShipWithFairCondition()  {
+   85 		List<Ship> sList=new ArrayList<Ship>();
+   86 		for(Ship s:shipList){
+   87 		    if(s.getCondition().equalsIgnoreCase("Fair")){
+   88 		        sList.add(s);
+   89 		    }
+   90 		}
+   91 		log.info("Get Ships with fair condition is successfully done");
+   92 	    return sList;
+   93 	}
+   94 	
+   95 	
+   96 	
+   97 	public ShipServiceImpl() {
+   98 		populateShips();
+   99 	}
+  100 	public void populateShips() {
+  101 		
+  102 		//If needed, you can uncomment the below lines and use the objects to check your application
+  103 		
+  104 		
+  105 //		shipList.add(new Ship("SHIP 1-455","Thistlegorm","British Merchant boat in the red sea","Good",80,34.56,67.75,LocalDate.now().minusYears(28)));
+  106 //		shipList.add(new Ship("SHIP 9-789","SS Yongala","A luxury passenger ship wrecked on the great barrier reef","Fair",50,56.78,67.75,LocalDate.now().minusYears(28)));
+  107 //		shipList.add(new Ship("SHIP 7-555","Javaship","Programming ship to develop secure applications","Fair",350,80.78,120.75,LocalDate.now().minusYears(31)));
+  108 //		shipList.add(new Ship("SHIP 6-458","RMS Titanic","Famous ship for never making her destination","Good",80,70.78,120.75,LocalDate.now().minusYears(110)));
+  109 //		shipList.add(new Ship("SHIP 3-623","MS Estonia","British Merchant boat in the Caribbean Sea","Good",280,80.78,90.75,LocalDate.now().minusYears(28)));
+  110 //		shipList.add(new Ship("SHIP 5-222","HMS Victory","Now the property of British government under marine laws","Fair",50,60.78,90.75,LocalDate.now().minusYears(14)));
+  111 //		shipList.add(new Ship("SHIP 4-345","The Mary Rose","It was a warship in the navy of the Tudor King Henry VIII","Fair",220,80.78,120.75,LocalDate.now().minusYears(40)));
+  112 
+  113 	}
+  114 
+  115 }
+  116 
+ShipwreckStoreService/src/main/resources/application.properties
+    1 server.port=9090
+    2 logging.config=src/main/resources/logger.xml
+    3 eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+    4 spring.application.name=shipwreckstore
+ShipwreckStoreService/src/main/resources/logger.xml
+    1 <?xml version="1.0" encoding="UTF-8"?>
+    2 <configuration>
+    3     <property name="HOME_LOG" value="log/mylogs.log"/>
+    4 
+    5     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    6         <layout class="ch.qos.logback.classic.PatternLayout">
+    7             <Pattern>
+    8                 %d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n
+    9             </Pattern>
+   10         </layout>
+   11     </appender>
+   12 
+   13     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+   14         <file>${HOME_LOG}</file>
+   15         
+   16         <append>true</append>
+   17         <encoder>
+   18             <pattern>[%-5level] %d{dd-MM-yyyy hh:mm:ss.SSS a} [%thread]  %logger{50} - %msg%n</pattern>
+   19         </encoder>
+   20     </appender>
+   21 
+   22 
+   23 <!-- additivity as false appends only to file and not to console -->
+   24     <logger name="com.shipwreckstore.service" level="info" additivity="false">
+   25         <!-- <appender-ref ref="CONSOLE"/> -->
+   26         <appender-ref ref="FILE"/>
+   27     </logger>
+   28 
+   29 	<logger name="com.shipwreckstore.exception" level="info" additivity="false">
+   30         <!-- <appender-ref ref="CONSOLE"/> -->
+   31         <appender-ref ref="FILE"/>
+   32     </logger>
+   33 	
+   34     <root level="debug">
+   35         <appender-ref ref="CONSOLE"/>
+   36     </root>
+   37 </configuration>
+   38 
+
+
+
+ShipwreckStoreApplication/src/main/java/com/shipwreckstore/app/ShipwreckStoreApplication.java
+    1 package com.shipwreckstore.app;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    6 import org.springframework.cloud.openfeign.EnableFeignClients;
+    7 import org.springframework.context.annotation.ComponentScan;
+    8 
+    9 @SpringBootApplication
+   10 @EnableDiscoveryClient
+   11 @EnableFeignClients(basePackages={"com.shipwreckstore.controller","com.shipwreckstore.proxy"})
+   12 @ComponentScan(basePackages={"com.shipwreckstore.*"})
+   13 public class ShipwreckStoreApplication {
+   14 
+   15 	public static void main(String[] args) {
+   16 		SpringApplication.run(ShipwreckStoreApplication.class, args);
+   17 	}
+   18 
+   19 }
+   20 
+ShipwreckStoreApplication/src/main/java/com/shipwreckstore/controller/ApplicationController.java
+    1 package com.shipwreckstore.controller;
+    2 
+    3 import org.springframework.web.bind.annotation.RestController;
+    4 import org.springframework.beans.factory.annotation.Autowired;
+    5 import org.springframework.web.bind.annotation.GetMapping;
+    6 import com.shipwreckstore.proxy.ServiceProxy;
+    7 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+    8 
+    9 
+   10 @RestController
+   11 public class ApplicationController {
+   12 
+   13 	@Autowired
+   14 	private ServiceProxy proxy;
+   15 	
+   16 	@GetMapping(value="/greet")
+   17 	@CircuitBreaker(name="myCircuitBreaker",fallbackMethod="fallback")
+   18 	public String retreiveInfo( ) {
+   19 		
+   20 		return proxy.greeting();
+   21 		
+   22 	}
+   23 	
+   24 	public String fallback(Exception e) {
+   25 		return "Sorry Service is unavailable";
+   26 	}
+   27 	
+   28 }
+ShipwreckStoreApplication/src/main/java/com/shipwreckstore/proxy/ServiceProxy.java
+    1 package com.shipwreckstore.proxy;
+    2 
+    3 import org.springframework.cloud.openfeign.FeignClient;
+    4 import org.springframework.web.bind.annotation.RequestMapping;
+    5 @FeignClient(name="ShipwreckStoreGreeting")
+    6 public interface ServiceProxy {
+    7 	   
+    8 	   @RequestMapping("/welcome")
+    9 	   public String greeting();
+   10 }
+   11 
+ShipwreckStoreApplication/src/main/resources/application.properties
+    1 server.port=8090
+    2 
+
+
+Gateway/src/main/java/com/example/demo/GatewayApplication.java
+
+    1 package com.example.demo;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+    6 @EnableDiscoveryClient
+    7 @SpringBootApplication
+    8 public class GatewayApplication {
+    9 
+   10 	public static void main(String[] args) {
+   11 		SpringApplication.run(GatewayApplication.class, args);
+   12 	}
+   13 
+   14 }
+   15 
+Gateway/src/main/resources/application.properties
+    1 server.port=8777
+    2 spring.application.name=gateway
+    3 eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+    4 spring.cloud.gateway.discovery.locator.enabled=true
+    5 spring.cloud.gateway.discovery.locator.lowerCaseServiceId=true
+    6 spring.cloud.gateway.globalcors.cors.corsConfigurations=[/**]
+    7 spring.cloud.gateway.globalcors.cors.corsConfigurations.allowedOrigins=*
+    8 spring.cloud.gateway.globalcors.cors.corsConfigurations.allowedMethods=*
+    9 spring.cloud.gateway.routes[0].id=shipwreckstore
+   10 spring.cloud.gateway.routes[0].uri=lb://shipwreckstore
+   11 spring.cloud.gateway.routes[0].predicates[0]=Path=/**
+
+Gateway/src/main/resources/bootstrap.properties
+    1 spring.application.name=gateway
+    2 spring.cloud.gateway.discovery.locator.enabled=true
+    3 spring.cloud.consul.discovery.health-check-path=/actuator/health
+
+
+Registry/src/main/java/com/example/RegistryApplication.java
+    1 package com.example;
+    2 
+    3 import org.springframework.boot.SpringApplication;
+    4 import org.springframework.boot.autoconfigure.SpringBootApplication;
+    5 import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+    6 @SpringBootApplication
+    7 @EnableEurekaServer
+    8 public class RegistryApplication {
+    9 
+   10 	public static void main(String[] args) {
+   11 		SpringApplication.run(RegistryApplication.class, args);
+   12 	}
+   13 
+   14 }
+   15 
+Registry/src/main/resources/application.properties
+    1 server.port = 8761
+    2 eureka.client.registerWithEureka=false
+    3 eureka.client.fetchRegistry=false
+Grade
+Reviewed on Tuesday, 24 December 2024, 9:02 PM by Automatic grade
+Grade 100 / 100
+
+
